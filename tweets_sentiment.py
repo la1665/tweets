@@ -32,6 +32,8 @@ all_positive_tweets = all_positive_tweets['0'].to_list()
 all_negative_tweets = all_negative_tweets['0'].to_list()
 train_x = train_x['0'].to_list()
 train_y = train_y['0'].to_list()
+test_x = test_x['0'].to_list()
+test_y = test_y['0'].to_list()
 
 positive_words = set()
 negative_words = set()
@@ -123,7 +125,7 @@ for tweet in all_negative_tweets:
             negative_words.add(stem_word)
 
 
-tweets_flatten = []
+train_flatten = []
 for tweet in range(0, len(train_x)):
     i =[0,0]
     tweet = train_x[tweet].split(' ')
@@ -132,22 +134,33 @@ for tweet in range(0, len(train_x)):
             i[0] += 1
         if word in negative_words and word not in stopwords:
             i[1] += 1
-    tweets_flatten.append(i)
+    train_flatten.append(i)
+
+test_flatten = []
+for tweet in range(0, len(test_x)):
+    i =[0,0]
+    tweet = test_x[tweet].split(' ')
+    for word in tweet:
+        if word in positive_words and word not in stopwords:
+            i[0] += 1
+        if word in negative_words and word not in stopwords:
+            i[1] += 1
+    test_flatten.append(i)
 
 
 
- 
 
 def load_dataset():
-    train_dataset = h5py.File(r"D:\programs\python\soft_math1\deep_learning\datasets/train_catvnoncat.h5")
-    train_set_x_org = np.array(train_dataset['train_set_x'][:])
-    train_set_y_org = np.array(train_dataset['train_set_y'][:])
+    # train_dataset = h5py.File(r"D:\programs\python\soft_math1\deep_learning\datasets/train_catvnoncat.h5")
+    train_set_x_org = train_flatten
+    train_set_y_org = train_y
 
-    test_dataset = h5py.File(r"D:\programs\python\soft_math1\deep_learning\datasets/test_catvnoncat.h5")
-    test_set_x_org = np.array(test_dataset['test_set_x'][:])
-    test_set_y_org = np.array(test_dataset['test_set_y'][:])
+    # test_dataset = h5py.File(r"D:\programs\python\soft_math1\deep_learning\datasets/test_catvnoncat.h5")
+    test_set_x_org = test_flatten
+    test_set_y_org = test_y
 
-    classes = np.array(test_dataset['list_classes'][:])
+    # classes = np.array(test_dataset['list_classes'][:])
+    classes = [0, 1]
 
     #train_set_y_org = np.reshape(train_set_y_org, (1, train_set_y_org.shape[0]))
     #test_set_y_org = np.reshape(test_set_y_org, (1, test_set_y_org.shape[0]))
@@ -156,27 +169,27 @@ def load_dataset():
 
 train_set_x_org, train_set_y_org, test_set_x_org, test_set_y_org, classes = load_dataset()
 
-index = 25
-plt.imshow(train_set_x_org[index])
-plt.show()
-print("label",train_set_y_org[index])
+# index = 25
+# plt.imshow(train_set_x_org[index])
+# plt.show()
+# print("label",train_set_y_org[index])
 
 
-train_set_x_flatten = train_set_x_org.reshape((train_set_x_org.shape[0], -1))
-test_set_x_flatten = test_set_x_org.reshape((test_set_x_org.shape[0], -1))
+# train_set_x_flatten = train_set_x_org.reshape((train_set_x_org.shape[0], -1))
+# test_set_x_flatten = test_set_x_org.reshape((test_set_x_org.shape[0], -1))
 
-print("flat shape",train_set_x_flatten.shape)
+# print("flat shape",train_set_x_flatten.shape)
 
-train_set_x_flatten = train_set_x_flatten/255.0
-test_set_x_flatten = test_set_x_flatten/255.0
+# train_set_x_flatten = train_set_x_flatten/255.0
+# test_set_x_flatten = test_set_x_flatten/255.0
 
-model = keras.models.load_model("training_model/saved_model-05.h5")
+# model = keras.models.load_model("training_model/saved_model-05.h5")
 
-pred = model.predict(test_set_x_flatten)
+# pred = model.predict(test_set_x_flatten)
 
 model = tf.keras.models.Sequential(
     layers=[
-tf.keras.layers.Dense(64, activation='relu', input_shape=(12288, )),
+tf.keras.layers.Dense(64, activation='relu', input_shape=(len(train_set_x_org), )),
 tf.keras.layers.Dense(64, activation='relu'),
 Dense(1, activation='sigmoid')
 ]
@@ -195,8 +208,8 @@ early_stoping = keras.callbacks.EarlyStopping(monitor='val_loss',
 
 model.compile(loss=BinaryCrossentropy(),optimizer=Adam(learning_rate=.001),
               metrics=['accuracy'])
-history = model.fit(x=train_set_x_flatten , y=train_set_y_org ,
-          validation_data=(test_set_x_flatten, test_set_y_org),
+history = model.fit(x=train_set_x_org , y=train_set_y_org ,
+          validation_data=(test_set_x_org, test_set_y_org),
                     batch_size=32, epochs=50, callbacks=[check_point, early_stoping])
 
 model.save("training_model/test_binary.h5")
